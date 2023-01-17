@@ -5,4 +5,6 @@ Real time accelerometer traces from the M5StickC-Plus
 
 One fun use is to take it on an airplane or car ride and look at the accelerations you experience.
 
+Red: X, Green: Y, Yellow: Z
+
 BOM: M5StickC-Plus, should be easily adaptable to other M5 devices with an IMU.
