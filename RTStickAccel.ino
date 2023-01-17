@@ -20,6 +20,7 @@
 #define XCENT 34.0
 #define YCENT 66.0
 #define ZCENT 100.0
+#define LEDPIN G10
 
 // Enough room for a full frame buffer?
 // M5stackC-Plus: 520K RAM = 16k probably not, 8k OK
@@ -38,6 +39,7 @@ float correctionX = 0.0;
 float correctionY = 0.0;
 float correctionZ = 0.0;
 int dot = 0;
+bool frozen = (0==1);
 
 void setup() {
     M5.begin();
@@ -62,47 +64,54 @@ void setup() {
     stextZ.setColorDepth(8);
     stextZ.createSprite(32, 18);
     stextZ.setTextColor(TFT_WHITE);
+    
+    
 }
 
 void loop() {
-
-    M5.IMU.getAccelData(&accX, &accY, &accZ);
-    accX = accX + correctionX;
-    accY = accY + correctionY;
-    accZ = accZ + correctionZ;
-
-    stextX.fillSprite(DARKGREY);
-    stextY.fillSprite(DARKGREY);
-    stextZ.fillSprite(DARKGREY);
-    stextX.drawFloat(accX, 1, 2, 2);
-    stextY.drawFloat(accY, 1, 2, 2);
-    stextZ.drawFloat(accZ, 1, 2, 2);  
-
-    // 1/2 G guidelines
-    if (dot == 0) { 
-    sgraph.drawPixel(GRAPHW-1, XCENT + SCALE/2, RED);
-    sgraph.drawPixel(GRAPHW-1, YCENT + SCALE/2, GREEN);
-    sgraph.drawPixel(GRAPHW-1, ZCENT + SCALE/2, YELLOW);
-    sgraph.drawPixel(GRAPHW-1, XCENT - SCALE/2, RED);
-    sgraph.drawPixel(GRAPHW-1, YCENT - SCALE/2, GREEN);
-    sgraph.drawPixel(GRAPHW-1, ZCENT - SCALE/2, YELLOW);
+	M5.update();
+    if (!frozen) {
+	    M5.IMU.getAccelData(&accX, &accY, &accZ);
+	    accX = accX + correctionX;
+	    accY = accY + correctionY;
+	    accZ = accZ + correctionZ;
+	
+	    stextX.fillSprite(DARKGREY);
+	    stextY.fillSprite(DARKGREY);
+	    stextZ.fillSprite(DARKGREY);
+	    stextX.drawFloat(accX, 1, 2, 2);
+	    stextY.drawFloat(accY, 1, 2, 2);
+	    stextZ.drawFloat(accZ, 1, 2, 2);  
+	
+	    // 1/2 G guidelines
+	    if (dot == 0) { 
+	    sgraph.drawPixel(GRAPHW-1, XCENT + SCALE/2, RED);
+	    sgraph.drawPixel(GRAPHW-1, YCENT + SCALE/2, GREEN);
+	    sgraph.drawPixel(GRAPHW-1, ZCENT + SCALE/2, YELLOW);
+	    sgraph.drawPixel(GRAPHW-1, XCENT - SCALE/2, RED);
+	    sgraph.drawPixel(GRAPHW-1, YCENT - SCALE/2, GREEN);
+	    sgraph.drawPixel(GRAPHW-1, ZCENT - SCALE/2, YELLOW);
+	    }
+	    dot = (dot+1) % 4;
+	    sgraph.drawPixel(GRAPHW-1, int(XCENT + accX * SCALE ), RED);
+	    sgraph.drawPixel(GRAPHW-1, int(YCENT + accY * SCALE), GREEN);
+	    sgraph.drawPixel(GRAPHW-1, int(ZCENT + (accZ) * SCALE), YELLOW);
+	    sgraph.scroll(-1, 0);   // scroll graph 1 pixel left, 0 up/down
+	
+	    // text sprite still flicker when pushed on top of graph sprite
+	    stextX.pushSprite(0, 0);
+	    stextY.pushSprite(0, 60);
+	    stextZ.pushSprite(0, 120);
+	    sgraph.pushSprite(TEXTW, 0);
+	    // use wasReleased
+        // because code might finish before you release the button!
+	    if (M5.BtnA.wasReleased()) {
+	        calibrate();
+	    }
     }
-    dot = (dot+1) % 4;
-    sgraph.drawPixel(GRAPHW-1, int(XCENT + accX * SCALE ), RED);
-    sgraph.drawPixel(GRAPHW-1, int(YCENT + accY * SCALE), GREEN);
-    sgraph.drawPixel(GRAPHW-1, int(ZCENT + (accZ) * SCALE), YELLOW);
-    sgraph.scroll(-1, 0);   // scroll graph 1 pixel left, 0 up/down
-
-    // text sprite still flicker when pushed on top of graph sprite
-    stextX.pushSprite(0, 0);
-    stextY.pushSprite(0, 60);
-    stextZ.pushSprite(0, 120);
-    sgraph.pushSprite(TEXTW, 0);
-    M5.update();
-    // use wasReleased because code might finish before you release the button!
-    if (M5.BtnA.wasReleased()) {
-        calibrate();
-    }
+    if (M5.BtnB.wasPressed()) {
+       frozen = !frozen;
+	   }
 }
 
 void calibrate() { 
